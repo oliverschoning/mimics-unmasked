@@ -1,44 +1,46 @@
 import { Canvas } from "@react-three/fiber";
-import { Billboard,
-Grid,Image, 
-Plane} from "@react-three/drei";
+import { Billboard, Grid, Image, Plane, useGLTF } from "@react-three/drei";
 import { PersistentOrbitControls } from "./util/PersistentOrbitControls";
 import { Setup } from "./Setup";
 import PartyMember from "./ecs/component/PartyMember";
-import { PartyPath } from "./components/PartyPath"
+import { PartyPath } from "./components/PartyPath";
+import { Sprite } from "./components/Sprite";
+import { Suspense } from "react";
 
-export const Sprite = ({ position, scale, url }) => {
+const SurfacePath = () => {
+  const glb = useGLTF("/surface path.glb");
+
+  console.log(glb);
+
   return (
-    <Image
-      url={url}
-      position={position}
-      scale={scale} // width, height
-      transparent
-    />
-  )
-}
-
-export const App = () => {
-  return (
-	  <Canvas>
-	  	<ambientLight />
-
-		<Grid args={[40, 20]} />
-		<PartyPath />
-
-		<Setup />
-
-		<Sprite url="/Tree_1.png" />
-
-
-		<PartyMember.List />
-
-
-
-		<PartyMember.System />
-
-      	<PersistentOrbitControls persist={{ localStorageKey: "GAME" }} />
-	  </Canvas>
+    <>
+      <primitive object={glb.meshes.path} />
+    </>
   );
 };
 
+export const App = () => {
+  return (
+    <Canvas>
+      <ambientLight />
+
+      <Grid args={[40, 20]} />
+      <PartyPath />
+
+      <Setup />
+
+      <Suspense>
+        <SurfacePath />
+      </Suspense>
+
+      <Sprite position={[0, 2, 2]} scale={[4, 4]} url="/Tree_1.png" />
+      <Sprite position={[5, 1, 2]} scale={[4, 4]} url="/Tree_2.png" />
+
+      <PartyMember.List />
+
+      <PartyMember.System />
+
+      <PersistentOrbitControls persist={{ localStorageKey: "GAME" }} />
+    </Canvas>
+  );
+};
