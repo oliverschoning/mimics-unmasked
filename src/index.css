@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  font-feature-settings: "cv05" 1; /* Enable lowercase l with tail */
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  background-color: "#16161D"
+}
