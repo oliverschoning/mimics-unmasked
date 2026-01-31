@@ -1,17 +1,27 @@
-import React from "react";
 import { Canvas } from "@react-three/fiber";
-import * as THREE from "three";
-import { Box,OrbitControls,PerspectiveCamera } from "@react-three/drei";
+import { Grid } from "@react-three/drei";
+import { PersistentOrbitControls } from "./util/PersistentOrbitControls";
+import { Setup } from "./Setup";
+import PartyMember from "./ecs/component/PartyMember";
+import { PartyPath } from "./components/PartyPath"
 
 export const App = () => {
   return (
 	  <Canvas>
 	  	<ambientLight />
-		<Box>
-			<meshNormalMaterial />
-		</Box>
-		<PerspectiveCamera makeDefault position={[0, 0, 5]} />
-		<OrbitControls />
+
+		<Grid args={[40, 20]} />
+		<PartyPath />
+
+		<Setup />
+		
+		<PartyMember.List />
+
+
+
+		<PartyMember.System />
+
+      	<PersistentOrbitControls persist={{ localStorageKey: "GAME" }} />
 	  </Canvas>
   );
 };
