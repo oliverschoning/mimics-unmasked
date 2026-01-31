@@ -1,9 +1,22 @@
 import { Canvas } from "@react-three/fiber";
-import { Grid } from "@react-three/drei";
+import { Billboard,
+Grid,Image, 
+Plane} from "@react-three/drei";
 import { PersistentOrbitControls } from "./util/PersistentOrbitControls";
 import { Setup } from "./Setup";
 import PartyMember from "./ecs/component/PartyMember";
 import { PartyPath } from "./components/PartyPath"
+
+export const Sprite = ({ position, scale, url }) => {
+  return (
+    <Image
+      url={url}
+      position={position}
+      scale={scale} // width, height
+      transparent
+    />
+  )
+}
 
 export const App = () => {
   return (
@@ -14,7 +27,10 @@ export const App = () => {
 		<PartyPath />
 
 		<Setup />
-		
+
+		<Sprite url="/Tree_1.png" />
+
+
 		<PartyMember.List />
 
 
