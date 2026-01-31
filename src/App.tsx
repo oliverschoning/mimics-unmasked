@@ -6,6 +6,7 @@ import PartyMember from "./ecs/component/PartyMember";
 import { PartyPath } from "./components/PartyPath";
 import { Sprite } from "./components/Sprite";
 import { Suspense } from "react";
+import { degToRad } from "three/src/math/MathUtils.js";
 
 const SurfacePath = () => {
   const glb = useGLTF("/surface path.glb");
@@ -14,7 +15,7 @@ const SurfacePath = () => {
 
   return (
     <>
-      <primitive object={glb.meshes.path} />
+      <primitive rotation={[degToRad(90), 0, 0]} object={glb.meshes.path} />
     </>
   );
 };
