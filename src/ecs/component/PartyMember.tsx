@@ -1,85 +1,215 @@
-import React from "react";
-import { ECS } from "../state";
-import { Sphere } from "@react-three/drei";
+// src/components/PartyMembers.tsx
+import React, { useEffect, useRef } from "react";
+import { Image } from "@react-three/drei";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
+import { useInterval } from "usehooks-ts" // Assuming you have a useInterval hook
 import type { Entity } from "../Entity";
-import { PARTY_PATH } from "../../global";
+import { ECS } from "../state";
+import { degToRad } from "three/src/math/MathUtils.js";
 
-const PartyMember = (entity: Entity) => {
-  const ref = React.useRef<THREE.Mesh>(null!);
+type PartyMemberProps = {
+  entity: Entity;
+};
 
-  useFrame(() => {
-    ref.current.position.copy(entity.object3D.position);
-    // ref.current.rotation.copy(entity.object3D.rotation.copy)
-    // ref.current.scale.copy(entity.object3D.scale.copy)
+const ANIMATION_FRAME = 0.5; // seconds
+
+const newPartySprite = (url: string) =>
+  React.forwardRef<THREE.Mesh, PartyMemberProps>(({ entity }, ref) => {
+    const localRef = useRef<THREE.Mesh>(null!);
+    const { camera } = useThree();
+
+    const meshRef = (ref as React.RefObject<THREE.Mesh>) ?? localRef;
+
+    useFrame(() => {
+      const mesh = meshRef.current;
+
+      if (!mesh || !entity.object3D) return;
+
+      mesh.position.copy(entity.object3D.position);
+      mesh.scale.copy(entity.object3D.scale);
+      mesh.rotation.copy(entity.object3D.rotation);
+      mesh.lookAt(camera.position);
+
+
+	  mesh.material.opacity = 0.75;
+	  mesh.material.transparent = true;
+
+	  if (entity.partyMember?.state === "DEAD") {
+		mesh.rotation.z = degToRad(90)
+	  }
+    });
+
+    return <Image ref={meshRef} url={url} transparent />;
   });
 
+// ----- PARTY MEMBER SPRITES -----
+const Leader1Sprite = newPartySprite("/Leader_1.png");
+const Leader2Sprite = newPartySprite("/Leader_2.png");
+
+const Fedora1Sprite = newPartySprite("/Fedora_1.png");
+const Fedora2Sprite = newPartySprite("/Fedora_2.png");
+
+const BoubbleJacket1Sprite = newPartySprite("/Boubble_jacket_1.png");
+const BoubbleJacket2Sprite = newPartySprite("/Boubble_jacket_2.png");
+
+const LeatherJacket1Sprite = newPartySprite("/Leather_jacket_1.png");
+const LeatherJacket2Sprite = newPartySprite("/Leather_jacket_2.png");
+
+const BucketHat1Sprite = newPartySprite("/Bucket_hat_1.png");
+const BucketHat2Sprite = newPartySprite("/Bucket_hat_2.png");
+
+// ----- PARTY MEMBER COMPONENT -----
+export const PartyMember = ({ entity }: PartyMemberProps) => {
+  const refA = useRef<THREE.Mesh>(null!);
+  const refB = useRef<THREE.Mesh>(null!);
+  const frameRef = useRef<boolean>(true);
+	
+	useEffect(() => {
+		refB.current.visible = false;
+	}, [])
+
+  useInterval(() => {
+	if (entity.partyMember?.state === "DEAD") {	
+		return;
+	}
+
+
+	if (frameRef.current) {
+		refA.current.visible = true;
+		refB.current.visible = false;
+	} else {
+		refA.current.visible = false;
+		refB.current.visible = true;
+	}
+	frameRef.current = !frameRef.current;
+
+  }, ANIMATION_FRAME * 1000); // convert seconds to ms
+
   return (
-    <Sphere ref={ref}>
-      {entity.partyLeader && <meshNormalMaterial />}
-      {!entity.partyLeader && <meshBasicMaterial color="cornflowerblue" />}
-    </Sphere>
+    <>
+      {entity.partyMember?.type === "LEADER" && (
+        <>
+          <Leader1Sprite ref={refA} entity={entity} />
+          <Leader2Sprite ref={refB} entity={entity} />
+        </>
+      )}
+
+      {entity.partyMember?.type === "FEDORA" && (
+        <>
+          <Fedora1Sprite ref={refA} entity={entity} />
+          <Fedora2Sprite ref={refB} entity={entity} />
+        </>
+      )}
+
+      {entity.partyMember?.type === "BOUBBLE" && (
+        <>
+          <BoubbleJacket1Sprite ref={refA} entity={entity} />
+          <BoubbleJacket2Sprite ref={refB} entity={entity} />
+        </>
+      )}
+
+      {entity.partyMember?.type === "LEATHER" && (
+        <>
+          <LeatherJacket1Sprite ref={refA} entity={entity} />
+          <LeatherJacket2Sprite ref={refB} entity={entity} />
+        </>
+      )}
+
+      {entity.partyMember?.type === "BUCKET_HAT" && (
+        <>
+          <BucketHat1Sprite ref={refA} entity={entity} />
+          <BucketHat2Sprite ref={refB} entity={entity} />
+        </>
+      )}
+    </>
   );
 };
 
-const partyMemberQuery = ECS.world.with("object3D", "partyMember", "partyLeader");
+// ----- PARTY MEMBER LIST -----
+const partyQuery = ECS.world.with("object3D", "partyMember", "partyLeader");
 
+const pathQuery = ECS.world.with("path")
+
+const getPathNode = (idx: number) => {
+	for (const path of pathQuery) {
+		return path.path[ idx ]
+	}
+}
 const List = () => {
-  return (
-    <ECS.Entities in={partyMemberQuery}>
-      {(entity) => <PartyMember {...entity} />}
-    </ECS.Entities>
-  );
+  return <ECS.Entities in={partyQuery}>{(entity) => <PartyMember entity={entity} />}</ECS.Entities>;
 };
-
-const MOVEMENT_SPEED = 5; // units per second
+const MOVEMENT_SPEED = 3.5 // units per second
 const ARRIVAL_EPSILON = 0.01;
 
+const partyLeaderQuery = ECS.world.with("object3D", "partyMember", "partyLeader", "direction")
+
+const getPartyLeader = () => {
+	let leader: Entity;
+	for (const pm of partyLeaderQuery) {
+		leader = pm;
+		return leader;
+	}
+}
+
+
 const System = () => {
+
   useFrame((_, dt) => {
-    for (const entity of partyMemberQuery) {
-      if (entity.partyMember.state === "WALKING") {
-        const position = entity.object3D.position;
-        const target = entity.partyMember.target;
+	const partyLeader = getPartyLeader()
+
+
+
+	if (!partyLeader) {
+		// TODO
+		// set new leader 
+		return;
+	}
+
+      if (partyLeader!.partyMember!.state === "WALKING") {
+		  const targetNode = getPathNode(partyLeader.partyLeader!.targetPathIndex)
+
+		  if (!targetNode) {
+			return;
+		  }
+		
+
 
         // Vector from current position to target
-        const direction = target.clone().sub(position);
+        const direction = targetNode.parent!.position.clone().sub(partyLeader.object3D.position);
+
+
         const distance = direction.length();
         // // Move toward target
         direction.normalize();
+
+		ECS.world.addComponent(partyLeader, "direction", direction);
+
         const step = Math.min(distance, MOVEMENT_SPEED * dt);
 
-        position.addScaledVector(direction, step);
-
-        // Optional: keep velocity in sync
-        if (entity.velocity) {
-          entity.velocity.copy(direction).multiplyScalar(MOVEMENT_SPEED);
-        }
-
+        partyLeader.object3D.position.addScaledVector(direction, step);
 		
-      // Have we arrived?
-      if (distance <= ARRIVAL_EPSILON) {
-        position.copy(target);        // snap exactly to target
-        entity.velocity?.set(0, 0, 0); // optional
+		    if (distance <= ARRIVAL_EPSILON) {
+		      partyLeader.object3D.position.copy(targetNode.parent!.position);        // snap exactly to target
 
-		entity.partyLeader.targetPathIndex += 1;
-		const nextNode = PARTY_PATH[ entity.partyLeader.targetPathIndex ]
-		console.log("nextNode", nextNode)
-		if (nextNode) {
-			entity.partyMember.target.fromArray(nextNode);
-		}
-        continue;
-      }
+
+				partyLeader.partyLeader!.targetPathIndex += 1;
+				const nextNode = getPathNode(partyLeader.partyLeader!.targetPathIndex)
+				if (nextNode) {
+					partyLeader!.partyMember!.target = (nextNode.position);
+				}
+		    }
       }
 
-    }
-  });
+    })
 
   return null;
 };
 
+
+
+
 export default {
-  List,
-  System,
-};
+	List,
+	System
+}
